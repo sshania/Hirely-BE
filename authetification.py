@@ -74,7 +74,7 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
-    if not pwd_context.verify(user_credentials.password, user.User_Password):
+    if not pwd_context.verify(user_credentials.User_Password, user.User_Password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
     return {"message": "Login successful", "user_id": user.User_id}
