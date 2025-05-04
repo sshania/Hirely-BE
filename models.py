@@ -27,6 +27,8 @@ class User(Base):
     User_Work_Experience = Column(Integer)
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
     User_Final_Academic = Column(Enum(AcademicLevel), nullable=False)
+    User_Picture = Column(String(255)) 
+    User_Major = Column(String(255))
 
     skills = relationship("User_Skills", back_populates="user")
     job_history = relationship("Job_Matchmaking_History", back_populates="user")
@@ -54,8 +56,8 @@ class User_Skills(Base):
     User_id = Column(Integer, ForeignKey("User.User_id"))
     Skill_id = Column(Integer, ForeignKey("Skill.Skill_Id"))
 
+    user = relationship("User", back_populates="skills")
     skill = relationship("Skill", back_populates="user_skills")
-    skill_requirements = relationship("Skill_Requirements", back_populates="skill")
 
 class Skill(Base):
     __tablename__ = "Skill"
@@ -64,7 +66,7 @@ class Skill(Base):
     Skill_Name = Column(String(50), unique=True, index=True)
     Skill_Type = Column(String(50))
 
-    user = relationship("User", back_populates="skills")
+    Skill_Requirements = relationship("Skill_Requirements", back_populates="skills")
     user_skills = relationship("User_Skills", back_populates="skill")
 
 
