@@ -30,9 +30,9 @@ class User(Base):
     User_Picture = Column(String(255)) 
     User_Major = Column(String(255))
 
-    skills = relationship("User_Skills", back_populates="user")
-    job_history = relationship("Job_Matchmaking_History", back_populates="user")
-
+    # user = relationship("User", back_populates="job_history")
+    job_matchmaking_history = relationship("Job_Matchmaking_History", back_populates="user")
+    user_skills = relationship("User_Skills", back_populates="user")
 
 
 class Company(Base):
@@ -44,10 +44,11 @@ class Company(Base):
     Company_Phone_Number = Column(String(10), nullable=False)
     Company_Description = Column(String(255))
     Company_Location = Column(String(100))
-    Company_Link = Column(String(100))
+    Company_Link = Column(String(100), nullable=True)
 
-    job_history = relationship("Job_Matchmaking_History", back_populates="company")
     skill_requirements = relationship("Skill_Requirements", back_populates="company")
+    job_matchmaking_history = relationship("Job_Matchmaking_History", back_populates="company")
+    
 
 class User_Skills(Base):
     __tablename__ = "User_Skills"
@@ -56,8 +57,11 @@ class User_Skills(Base):
     User_id = Column(Integer, ForeignKey("User.User_id"))
     Skill_id = Column(Integer, ForeignKey("Skill.Skill_Id"))
 
-    user = relationship("User", back_populates="skills")
+    #Relationships
+    # relasi_nama_variabel = relationship("NamaModelLain", back_populates="relasi_balikan")
+    user = relationship("User", back_populates="user_skills")
     skill = relationship("Skill", back_populates="user_skills")
+    
 
 class Skill(Base):
     __tablename__ = "Skill"
@@ -66,8 +70,9 @@ class Skill(Base):
     Skill_Name = Column(String(50), unique=True, index=True)
     Skill_Type = Column(String(50))
 
-    Skill_Requirements = relationship("Skill_Requirements", back_populates="skills")
+    #Relationships
     user_skills = relationship("User_Skills", back_populates="skill")
+    skill_requirements = relationship("Skill_Requirements", back_populates="skill")
 
 
 
@@ -78,8 +83,10 @@ class Skill_Requirements(Base):
     Company_id = Column(Integer, ForeignKey("Company.Company_id"))
     Skill_id = Column(Integer, ForeignKey("Skill.Skill_Id"))
 
+    #Relationships
     company = relationship("Company", back_populates="skill_requirements")
     skill = relationship("Skill", back_populates="skill_requirements")
+
 
 
 class Job_Matchmaking_History(Base):
@@ -90,5 +97,7 @@ class Job_Matchmaking_History(Base):
     Company_id = Column(Integer, ForeignKey("Company.Company_id"), nullable=False)
     Score = Column(Float)
 
-    user = relationship("User", back_populates="job_history")
-    company = relationship("Company", back_populates="job_history")
+    #relationships
+    user = relationship("User", back_populates="job_matchmaking_history")
+    company = relationship("Company", back_populates="job_matchmaking_history")
+
