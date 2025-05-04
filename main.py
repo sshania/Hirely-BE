@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from authetification import router as authentification_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+app = FastAPI(title="Hirely API")
+app.include_router(authentification_router, prefix="/auth")
 
 @app.get("/")
 def read_root():
@@ -11,3 +13,5 @@ def read_root():
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str = None):
     return {"item_id": item_id, "query": q}
+
+app.include_router(authentification_router, prefix="/auth", tags=["Authentication"])
