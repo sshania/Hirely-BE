@@ -26,7 +26,7 @@ class User(Base):
     User_Description = Column(String(255))
     User_Work_Experience = Column(Integer)
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
-    User_Final_Academic = Column(Enum(AcademicLevel), nullable=False)
+    User_Final_Academic = Column(Enum(AcademicLevel), nullable=True)
     User_Picture = Column(String(255)) 
     User_Major = Column(String(255))
 

@@ -1,16 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field, validator
 from passlib.context import CryptContext
 from typing import Optional, Literal
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 
 from models import User, AcademicLevel
-from database import get_db  # This should be your database session dependency
+from database import get_db
 
 router = APIRouter()
 
+SECRET_KEY = "fw67adas6123fda5d5asdca67lwuq10dica"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -42,6 +51,27 @@ class UserLogin(BaseModel):
     email: EmailStr
     User_Password: str
 
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    user_id = payload.get("sub")
+    return db.query(User).filter(User.User_id == int(user_id)).first()
+
 # --------- Routes ---------
 @router.post("/register")
 def register(user: UserRegister, db: Session = Depends(get_db)):
@@ -71,10 +101,8 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.User_Email == user_credentials.email).first()
-    if not user:
+    if not user or not pwd_context.verify(user_credentials.User_Password, user.User_Password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
-    if not pwd_context.verify(user_credentials.User_Password, user.User_Password):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
-
-    return {"message": "Login successful", "user_id": user.User_id}
+    token = create_access_token(data={"sub": str(user.User_id)})
+    return {"access_token": token, "token_type": "bearer"}
