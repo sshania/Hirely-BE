@@ -26,10 +26,17 @@ def verify_token(token: str):
     except JWTError:
         return None
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = verify_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=402, detail="Token is invalid or has expired")
 
-    user_id = payload.get("sub")
-    return db.query(User).filter(User.User_id == int(user_id)).first()
+    user_id = payload.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=403, detail="Invalid token payload: missing 'user_id'")
+
+    user = db.query(User).filter(User.User_id == int(user_id)).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user

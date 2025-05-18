@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from passlib.context import CryptContext
 from typing import Optional, Literal
 
@@ -33,7 +33,8 @@ class UserRegister(BaseModel):
     User_Major: str = None
     terms_accepted: bool
 
-    @validator("terms_accepted")
+    @field_validator("terms_accepted")
+    @classmethod
     def must_accept_terms(cls, v):
         if not v:
             raise ValueError("You must accept the terms and services.")
@@ -42,6 +43,20 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     User_Password: str
+
+from pydantic import BaseModel, EmailStr, Field, root_validator
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+    confirm_password: str
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self
+
 
 # --------- Routes ---------
 @router.post("/register")
@@ -73,7 +88,20 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.User_Email == user_credentials.email).first()
     if not user or not pwd_context.verify(user_credentials.User_Password, user.User_Password):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     
     token = create_access_token(data={"sub": str(user.User_id)})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.User_Email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    hashed_password = pwd_context.hash(request.new_password)
+    user.User_Password = hashed_password
+
+    db.commit()
+    db.refresh(user)
+    return {"message": "Password has been reset successfully."}
