@@ -80,6 +80,14 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = pwd_context.hash(user.User_Password)
+
+    academic_level = None
+    if user.User_Final_Academic:
+        try:
+            academic_level = AcademicLevel(user.User_Final_Academic)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid value for User_Final_Academic")
+
     new_user = User(
         User_Name=user.User_Name,
         User_Password=hashed_password,
@@ -88,10 +96,11 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         User_Gender=user.User_Gender,
         User_Description=user.User_Description,
         User_Work_Experience=user.User_Work_Experience,
-        User_Final_Academic=user.User_Final_Academic,
+        User_Final_Academic=academic_level,
         User_Picture=user.User_Picture,
         User_Major=user.User_Major
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -103,8 +112,8 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.User_Email == user_credentials.email).first()
     if not user or not pwd_context.verify(user_credentials.User_Password, user.User_Password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    token = create_access_token(data={"sub": str(user.User_id)})
+
+    token = create_access_token(user_id=user.User_id)
     return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/reset-password")

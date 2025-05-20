@@ -22,7 +22,7 @@ class User(Base):
     User_Password = Column(String(100), nullable=False)
     User_Email = Column(String(50), nullable=False)
     User_Phone_Number = Column(String(10), nullable=False)
-    User_Gender = Column(String(10))
+    User_Gender = Column(String(10), nullable=True)
     User_Description = Column(String(255))
     User_Work_Experience = Column(Integer)
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
