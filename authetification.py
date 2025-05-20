@@ -25,13 +25,20 @@ class UserRegister(BaseModel):
     User_Password: str
     User_Email: EmailStr
     User_Phone_Number: str
-    User_Gender: Literal["Male", "Female", "Other"] = Field(...)
-    User_Description: str = None
-    User_Work_Experience: int = 0
-    User_Final_Academic: str
-    User_Picture: str = None
-    User_Major: str = None
+    User_Gender: Optional[Literal["Male", "Female", "Other"]] = None
+    User_Description: Optional[str] = None
+    User_Work_Experience: Optional[int] = 0
+    User_Final_Academic: Optional[str] = None
+    User_Picture: Optional[str] = None
+    User_Major: Optional[str] = None
     terms_accepted: bool
+
+    @field_validator("User_Password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        return v
 
     @field_validator("terms_accepted")
     @classmethod

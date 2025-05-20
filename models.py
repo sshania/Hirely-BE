@@ -30,7 +30,7 @@ class User(Base):
     User_Picture = Column(String(255)) 
     User_Major = Column(String(255))
 
-    skills = relationship("User_Skills", back_populates="user")
+    user_skills = relationship("User_Skills", back_populates="user")
     job_history = relationship("Job_Matchmaking_History", back_populates="user")
 
 
@@ -56,18 +56,18 @@ class User_Skills(Base):
     User_id = Column(Integer, ForeignKey("User.User_id"))
     Skill_id = Column(Integer, ForeignKey("Skill.Skill_Id"))
 
-    user = relationship("User", back_populates="skills")
+    user = relationship("User", back_populates="user_skills")
     skill = relationship("Skill", back_populates="user_skills")
 
 class Skill(Base):
     __tablename__ = "Skill"
 
-    Skill_Id = Column(Integer, primary_key=True, index=True)  
+    Skill_Id = Column(Integer, primary_key=True, index=True)
     Skill_Name = Column(String(50), unique=True, index=True)
     Skill_Type = Column(String(50))
 
-    Skill_Requirements = relationship("Skill_Requirements", back_populates="skills")
     user_skills = relationship("User_Skills", back_populates="skill")
+    skill_requirements = relationship("Skill_Requirements", back_populates="skill")
 
 
 
