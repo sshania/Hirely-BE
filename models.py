@@ -23,12 +23,12 @@ class User(Base):
     User_Email = Column(String(50), nullable=False)
     User_Phone_Number = Column(String(10), nullable=False)
     User_Gender = Column(String(10), nullable=True)
-    User_Description = Column(String(255))
-    User_Work_Experience = Column(Integer)
+    User_Description = Column(String(255), nullable=True)
+    User_Work_Experience = Column(Integer, nullable=True)
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
     User_Final_Academic = Column(Enum(AcademicLevel), nullable=True)
-    User_Picture = Column(String(255)) 
-    User_Major = Column(String(255))
+    User_Picture = Column(String(255), nullable=True) 
+    User_Major = Column(String(255), nullable=True)
 
     user_skills = relationship("User_Skills", back_populates="user")
     job_history = relationship("Job_Matchmaking_History", back_populates="user")

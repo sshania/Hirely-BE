@@ -51,8 +51,6 @@ class UserLogin(BaseModel):
     email: EmailStr
     User_Password: str
 
-from pydantic import BaseModel, EmailStr, Field, root_validator
-
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
     new_password: str
