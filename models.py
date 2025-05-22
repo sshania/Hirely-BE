@@ -22,15 +22,15 @@ class User(Base):
     User_Password = Column(String(100), nullable=False)
     User_Email = Column(String(50), nullable=False)
     User_Phone_Number = Column(String(10), nullable=False)
-    User_Gender = Column(String(10))
-    User_Description = Column(String(255))
-    User_Work_Experience = Column(Integer)
+    User_Gender = Column(String(10), nullable=True)
+    User_Description = Column(String(255), nullable=True)
+    User_Work_Experience = Column(Integer, nullable=True)
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
     User_Final_Academic = Column(Enum(AcademicLevel), nullable=True)
-    User_Picture = Column(String(255)) 
-    User_Major = Column(String(255))
+    User_Picture = Column(String(255), nullable=True) 
+    User_Major = Column(String(255), nullable=True)
 
-    skills = relationship("User_Skills", back_populates="user")
+    user_skills = relationship("User_Skills", back_populates="user")
     job_history = relationship("Job_Matchmaking_History", back_populates="user")
 
 
@@ -56,18 +56,18 @@ class User_Skills(Base):
     User_id = Column(Integer, ForeignKey("User.User_id"))
     Skill_id = Column(Integer, ForeignKey("Skill.Skill_Id"))
 
-    user = relationship("User", back_populates="skills")
+    user = relationship("User", back_populates="user_skills")
     skill = relationship("Skill", back_populates="user_skills")
 
 class Skill(Base):
     __tablename__ = "Skill"
 
-    Skill_Id = Column(Integer, primary_key=True, index=True)  
+    Skill_Id = Column(Integer, primary_key=True, index=True)
     Skill_Name = Column(String(50), unique=True, index=True)
     Skill_Type = Column(String(50))
 
-    Skill_Requirements = relationship("Skill_Requirements", back_populates="skills")
     user_skills = relationship("User_Skills", back_populates="skill")
+    skill_requirements = relationship("Skill_Requirements", back_populates="skill")
 
 
 

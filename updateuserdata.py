@@ -8,14 +8,9 @@ from typing_extensions import Literal
 
 from models import User
 from database import get_db
-from utils import get_current_user, SECRET_KEY, ALGORITHM
+from utils import get_current_user, SECRET_KEY, ALGORITHM, oauth2_scheme
 
-router = APIRouter(
-    prefix="/user",
-    tags=["User"],
-)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+router = APIRouter()
 
 class UserUpdate(BaseModel):
     User_Name: Optional[str]

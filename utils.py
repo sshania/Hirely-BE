@@ -13,8 +13,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
+def create_access_token(user_id: int, expires_delta: timedelta = None):
+    to_encode = {"user_id": user_id}
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -26,10 +26,17 @@ def verify_token(token: str):
     except JWTError:
         return None
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = verify_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=402, detail="Token is invalid or has expired")
 
-    user_id = payload.get("sub")
-    return db.query(User).filter(User.User_id == int(user_id)).first()
+    user_id = payload.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=403, detail="Invalid token payload: missing 'user_id'")
+
+    user = db.query(User).filter(User.User_id == int(user_id)).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from passlib.context import CryptContext
 from typing import Optional, Literal
 
@@ -25,15 +25,23 @@ class UserRegister(BaseModel):
     User_Password: str
     User_Email: EmailStr
     User_Phone_Number: str
-    User_Gender: Literal["Male", "Female", "Other"] = Field(...)
-    User_Description: str = None
-    User_Work_Experience: int = 0
-    User_Final_Academic: str
-    User_Picture: str = None
-    User_Major: str = None
+    User_Gender: Optional[Literal["Male", "Female", "Other"]] = None
+    User_Description: Optional[str] = None
+    User_Work_Experience: Optional[int] = 0
+    User_Final_Academic: Optional[str] = None
+    User_Picture: Optional[str] = None
+    User_Major: Optional[str] = None
     terms_accepted: bool
 
-    @validator("terms_accepted")
+    @field_validator("User_Password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        return v
+
+    @field_validator("terms_accepted")
+    @classmethod
     def must_accept_terms(cls, v):
         if not v:
             raise ValueError("You must accept the terms and services.")
@@ -43,6 +51,25 @@ class UserLogin(BaseModel):
     email: EmailStr
     User_Password: str
 
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+    confirm_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        return v
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self
+
+
 # --------- Routes ---------
 @router.post("/register")
 def register(user: UserRegister, db: Session = Depends(get_db)):
@@ -51,6 +78,14 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = pwd_context.hash(user.User_Password)
+
+    academic_level = None
+    if user.User_Final_Academic:
+        try:
+            academic_level = AcademicLevel(user.User_Final_Academic)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid value for User_Final_Academic")
+
     new_user = User(
         User_Name=user.User_Name,
         User_Password=hashed_password,
@@ -59,10 +94,11 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         User_Gender=user.User_Gender,
         User_Description=user.User_Description,
         User_Work_Experience=user.User_Work_Experience,
-        User_Final_Academic=user.User_Final_Academic,
+        User_Final_Academic=academic_level,
         User_Picture=user.User_Picture,
         User_Major=user.User_Major
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -73,7 +109,20 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.User_Email == user_credentials.email).first()
     if not user or not pwd_context.verify(user_credentials.User_Password, user.User_Password):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
-    
-    token = create_access_token(data={"sub": str(user.User_id)})
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_access_token(user_id=user.User_id)
     return {"access_token": token, "token_type": "bearer"}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.User_Email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    hashed_password = pwd_context.hash(request.new_password)
+    user.User_Password = hashed_password
+
+    db.commit()
+    db.refresh(user)
+    return {"message": "Password has been reset successfully."}
