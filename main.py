@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from routers.authetification import router as authentification_router
-from routers.updateuserdata import router as user_router
+from routers.userdata import router as user_router
 from routers.userskills import router as user_skill_router
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,4 +18,4 @@ def read_item(item_id: int, q: str = None):
 
 app.include_router(authentification_router, prefix="/auth", tags=["Authentication"])
 app.include_router(user_router, prefix="/user", tags=["User"])
-app.include_router(user_skill_router, prefix="/user", tags=["Skill"])
+app.include_router(user_skill_router, prefix="/skill", tags=["Skill"])

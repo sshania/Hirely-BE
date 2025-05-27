@@ -28,12 +28,19 @@ class User(Base):
     # User_Final_Academic  = Column(String(50)) # sd, smp, sma, d3, s1, s2, s3
     User_Final_Academic = Column(Enum(AcademicLevel), nullable=True)
     User_Picture = Column(String(255), nullable=True) 
-    User_Major = Column(String(255), nullable=True)
-
+    User_Major = Column(Integer, ForeignKey("Major.Major_Id"), nullable=True)
+    
+    major = relationship("Major", back_populates="users")
     user_skills = relationship("User_Skills", back_populates="user")
     job_history = relationship("Job_Matchmaking_History", back_populates="user")
 
+class Major(Base):
+    __tablename__ = "Major"
 
+    Major_Id = Column(Integer, primary_key=True, index=True)
+    Major_Name = Column(String(255), unique=True, nullable=False)
+
+    users = relationship("User", back_populates="major")
 
 class Company(Base):
     __tablename__ = "Company"
