@@ -23,6 +23,7 @@ def get_password_hash(password):
 class UserRegister(BaseModel):
     User_Name: str
     User_Password: str
+    confirm_password: str
     User_Email: EmailStr
     User_Phone_Number: str
     User_Gender: Optional[Literal["Male", "Female", "Other"]] = None
@@ -46,6 +47,12 @@ class UserRegister(BaseModel):
         if not v:
             raise ValueError("You must accept the terms and services.")
         return v
+    
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.User_Password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self
 
 class UserLogin(BaseModel):
     email: EmailStr
