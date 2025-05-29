@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 
-from models import User, AcademicLevel
+from models import User
 from database import get_db
 
 SECRET_KEY = "fw67adas6123fda5d5asdca67lwuq10dica"
