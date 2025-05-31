@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from typing_extensions import Literal
 
@@ -29,10 +29,12 @@ class UserResponse(BaseModel):
     User_Work_Experience: Optional[int] = None
     User_Final_Academic: Optional[AcademicLevel] = None
     User_Picture: Optional[str] = None
-    User_Major: Optional[MajorResponse] = None
+
+    User_Major: Optional[MajorResponse] = Field(default=None, alias="major")
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 class UserUpdate(BaseModel):
     User_Name: Optional[str]
@@ -70,10 +72,10 @@ def update_user_details(
     if "User_Major" in update_dict:
         major_id = update_dict["User_Major"]
         if major_id is not None:
-            major = db.query(Major).filter(Major.Major_id == major_id).first()
+            major = db.query(Major).filter(Major.Major_Id == major_id).first()
             if not major:
                 raise HTTPException(status_code=404, detail="Major not found")
-            update_dict["User_Major"] = major.Major_id
+            update_dict["User_Major"] = major.Major_Id
         else:
             update_dict["User_Major"] = None
 
