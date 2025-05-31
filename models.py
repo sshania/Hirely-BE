@@ -32,7 +32,7 @@ class User(Base):
     
     major = relationship("Major", back_populates="users")
     user_skills = relationship("User_Skills", back_populates="user")
-    job_history = relationship("Job_Matchmaking_History", back_populates="user")
+    job_matches = relationship("JobMatchResult", back_populates="user", cascade="all, delete-orphan")
 
 class Major(Base):
     __tablename__ = "Major"
@@ -53,7 +53,6 @@ class Company(Base):
     Company_Location = Column(String(100))
     Company_Link = Column(String(100))
 
-    job_history = relationship("Job_Matchmaking_History", back_populates="company")
     skill_requirements = relationship("Skill_Requirements", back_populates="company")
 
 class User_Skills(Base):
@@ -89,13 +88,13 @@ class Skill_Requirements(Base):
     skill = relationship("Skill", back_populates="skill_requirements")
 
 
-class Job_Matchmaking_History(Base):
-    __tablename__ = "Job_Matchmaking_History"
+class JobMatchResult(Base):
+    __tablename__ = "job_match_results"
 
-    History_Id = Column(Integer, primary_key=True, index=True)
-    User_id = Column(Integer, ForeignKey("User.User_id"), nullable=False)
-    Company_id = Column(Integer, ForeignKey("Company.Company_id"), nullable=False)
-    Score = Column(Float)
+    result_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("User.User_id"), nullable=False)
+    job_title = Column(String(50))
+    company = Column(String(50))
+    url = Column(String(255))
 
-    user = relationship("User", back_populates="job_history")
-    company = relationship("Company", back_populates="job_history")
+    user = relationship("User", back_populates="job_matches")

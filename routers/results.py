@@ -1,19 +1,19 @@
 import socket
-import gradio_client
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
 from gradio_client import Client
 
-from models import User, User_Skills, Skill, Major
+from models import User, User_Skills, Skill, Major, JobMatchResult
 from database import get_db
 from utils import get_current_user
 
 router = APIRouter()
-url = "https://hf.space/embed/ShaniaS/HirelyJobMatchmaking/api/predict/"
 socket.setdefaulttimeout(600000)
 
+
+# --------- Schemas ---------
 class JobMatch(BaseModel):
     Job_Title: str
     Company: str
@@ -22,6 +22,7 @@ class JobMatch(BaseModel):
     Apply_Now: Optional[HttpUrl] = None
 
 
+# --------- Routes ---------
 @router.post("/match-result", response_model=List[JobMatch])
 def get_match_result(
     db: Session = Depends(get_db),
@@ -50,13 +51,24 @@ def get_match_result(
         if not result or 'results' not in result:
             raise HTTPException(status_code=500, detail="Invalid response from AI model")
 
+        db.query(JobMatchResult).filter(JobMatchResult.user_id == current_user.User_id).delete()
+
+        for job in result['results']:
+            db.add(JobMatchResult(
+                user_id=current_user.User_id,
+                job_title=job.get("title", "")[:50],
+                company=job.get("company", "")[:50],
+                url=job.get("url", "")[:255]
+            ))
+        db.commit()
+
         job_matches = [
             JobMatch(
-                Job_Title=job['title'],
-                Company=job['company'],
-                Category=job['category'],
-                Snippet=job['snippet'],
-                Apply_Now=job['url']
+                Job_Title=job.get('title', ''),
+                Company=job.get('company', ''),
+                Category=job.get('category'),
+                Snippet=job.get('snippet'),
+                Apply_Now=job.get('url')
             )
             for job in result['results']
         ]
@@ -64,3 +76,24 @@ def get_match_result(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error communicating with AI model: {str(e)}")
+    
+@router.get("/history", response_model=List[JobMatch], response_model_exclude_none=True)
+def get_match_result_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    saved_jobs = db.query(JobMatchResult).filter(JobMatchResult.user_id == current_user.User_id).all()
+
+    if not saved_jobs:
+        raise HTTPException(status_code=404, detail="No saved job match history found")
+
+    job_history = [
+        JobMatch(
+            Job_Title=job.job_title,
+            Company=job.company,
+            Apply_Now=job.url
+        )
+        for job in saved_jobs
+    ]
+
+    return job_history
