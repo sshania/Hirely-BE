@@ -19,6 +19,9 @@ class SkillResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UserSkillsResponse(BaseModel):
+    skills: list[SkillResponse]
+
 class AddUserSkills(BaseModel):
     Skill_ids: List[int]
 
@@ -33,6 +36,16 @@ def get_all_skills(search: Optional[str] = None, db: Session = Depends(get_db)):
     if search:
         query = query.filter(Skill.Skill_Name.ilike(f"%{search}%"))
     return query.order_by(Skill.Skill_Name).all()
+
+@router.get("/user-skills", response_model=List[SkillResponse])
+def get_user_skills(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    skills = (
+        db.query(Skill)
+        .join(User_Skills, Skill.Skill_Id == User_Skills.Skill_id)
+        .filter(User_Skills.User_id == current_user.User_id)
+        .all()
+    )
+    return skills
 
 @router.post("/add-user")
 def add_user_skills(skill_data: AddUserSkills, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

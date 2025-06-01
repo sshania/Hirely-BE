@@ -1,23 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
-from passlib.context import CryptContext
 from typing import Optional, Literal
 
 from models import User, AcademicLevel, Major
 from database import get_db
-from utils import create_access_token
+from utils import create_access_token, create_reset_token, verify_reset_token, send_reset_email, verify_password, get_password_hash
 
 router = APIRouter()
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
 
 # --------- Schemas ---------
 class UserRegister(BaseModel):
@@ -58,8 +48,8 @@ class UserLogin(BaseModel):
     email: EmailStr
     User_Password: str
 
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
+class ResetPasswordConfirmRequest(BaseModel):
+    token: str
     new_password: str
     confirm_password: str
 
@@ -129,9 +119,35 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer"
     }
 
+@router.post("/request-password-reset")
+def request_password_reset(
+    email: EmailStr,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.User_Email == email).first()
+    if not user:
+        return {"message": "If the email is registered, a reset link will be sent."}
+
+    reset_token = create_reset_token(user.User_id)
+    background_tasks.add_task(send_reset_email, user.User_Email, reset_token)
+
+    return {"message": "If the email is registered, a reset link will be sent."}
+
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.User_Email == request.email).first()
+def reset_password_confirm(
+    request: ResetPasswordConfirmRequest,
+    db: Session = Depends(get_db)
+):
+    payload = verify_reset_token(request.token)
+    if not payload:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    user_id = payload.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="Invalid token payload")
+
+    user = db.query(User).filter(User.User_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
