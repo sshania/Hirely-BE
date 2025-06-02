@@ -6,8 +6,18 @@ from routers.results import router as results_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
+from middleware import log_requests
+
 app = FastAPI(title="Hirely API")
 app.include_router(authentification_router, prefix="/auth")
+
+app.middleware("https")(log_requests)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
