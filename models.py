@@ -98,3 +98,12 @@ class JobMatchResult(Base):
     url = Column(String(255))
 
     user = relationship("User", back_populates="job_matches")
+
+class PasswordReset(Base):
+    __tablename__ = "password_reset"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(100), nullable=False)
+    token = Column(String(5), nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
